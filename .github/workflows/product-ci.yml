@@ -1,4 +1,4 @@
-name: Product CI
+﻿name: Product CI
 
 # CI del prodotto (fork di Chatwoot Community). Controlli mirati e sostenibili.
 # I workflow upstream sono disattivati sul fork (gh workflow disable).
@@ -24,7 +24,7 @@ env:
 jobs:
   enterprise-guard:
     name: enterprise/ non modificata
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Confronta enterprise/ con il tag upstream
@@ -39,7 +39,7 @@ jobs:
   # RuboCop sui soli file Ruby modificati dalla PR: la baseline upstream v4.19.1 ha
   # 54 violazioni in 9 file di script/helper (vedi docs/product/BASELINE.md).
   lint-backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -57,7 +57,7 @@ jobs:
           fi
 
   lint-frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -69,7 +69,7 @@ jobs:
       - run: pnpm run eslint
 
   frontend-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -83,7 +83,7 @@ jobs:
   # RSpec mirato (modelli e policy) SENZA directory enterprise/.
   # conversation_spec.rb escluso finche' non e' risolto il blocco noto (vedi docs/product/BASELINE.md).
   backend-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: pgvector/pgvector:pg16
