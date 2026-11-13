@@ -1,0 +1,8 @@
+# Override per sviluppo locale (caricato automaticamente da docker compose).
+# Non contiene segreti: i valori reali stanno in .env (ignorato da git).
+services:
+  postgres:
+    environment:
+      - POSTGRES_DB=chatwoot
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
