@@ -1,4 +1,4 @@
-﻿name: Product CI
+name: Product CI
 
 # CI del prodotto (fork di Chatwoot Community). Controlli mirati e sostenibili.
 # I workflow upstream sono disattivati sul fork (gh workflow disable).
