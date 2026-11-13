@@ -1,0 +1,127 @@
+name: Product CI
+
+# CI del prodotto (fork di Chatwoot Community). Controlli mirati e sostenibili.
+# I workflow upstream sono disattivati sul fork (gh workflow disable).
+# Non e' un controllo obbligatorio del branch protetto finche' non ne verifichiamo la stabilita'.
+
+on:
+  pull_request:
+    branches:
+      - product/main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Tag upstream da cui deriva enterprise/ (aggiornare ad ogni upgrade upstream).
+  UPSTREAM_TAG: v4.19.1
+
+jobs:
+  enterprise-guard:
+    name: enterprise/ non modificata
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confronta enterprise/ con il tag upstream
+        run: |
+          git fetch --depth=1 https://github.com/chatwoot/chatwoot.git "refs/tags/${UPSTREAM_TAG}:refs/tags/upstream-${UPSTREAM_TAG}"
+          if ! git diff --quiet "upstream-${UPSTREAM_TAG}" HEAD -- enterprise spec/enterprise; then
+            echo "::error::enterprise/ o spec/enterprise sono stati modificati rispetto a ${UPSTREAM_TAG}. Vietato dalle regole di licenza."
+            git diff --stat "upstream-${UPSTREAM_TAG}" HEAD -- enterprise spec/enterprise
+            exit 1
+          fi
+
+  # RuboCop sui soli file Ruby modificati dalla PR: la baseline upstream v4.19.1 ha
+  # 54 violazioni in 9 file di script/helper (vedi docs/product/BASELINE.md).
+  lint-backend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: RuboCop sui file modificati
+        run: |
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${{ github.base_ref }}...HEAD" -- '*.rb' ':!enterprise' | tr '\n' ' ')
+          if [ -n "$FILES" ]; then
+            bundle exec rubocop --force-exclusion $FILES
+          else
+            echo "Nessun file Ruby modificato"
+          fi
+
+  lint-frontend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run eslint
+
+  frontend-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test --run
+
+  # RSpec mirato (modelli e policy) SENZA directory enterprise/.
+  # conversation_spec.rb escluso finche' non e' risolto il blocco noto (vedi docs/product/BASELINE.md).
+  backend-tests:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ''
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: --entrypoint redis-server
+    env:
+      RAILS_ENV: test
+      DISABLE_ENTERPRISE: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Rimuovi codice enterprise (build Community)
+        run: rm -rf enterprise spec/enterprise
+      - run: bundle exec rake db:create db:schema:load
+      - name: RSpec mirato
+        timeout-minutes: 40
+        run: bundle exec rspec spec/models spec/policies --exclude-pattern 'spec/models/conversation_spec.rb' --format progress
