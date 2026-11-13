@@ -1,8 +1,25 @@
 # Override per sviluppo locale (caricato automaticamente da docker compose).
-# Non contiene segreti: i valori reali stanno in .env (ignorato da git).
+# Nessun segreto qui: i valori stanno in .env (ignorato da git).
+# Tutte le porte sono pubblicate solo su 127.0.0.1 (`!override` sostituisce
+# l'elenco delle porte del compose upstream invece di aggiungerlo).
 services:
   postgres:
+    ports: !override
+      - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_DB=chatwoot
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?imposta POSTGRES_PASSWORD in .env}
+  redis:
+    ports: !override
+      - "127.0.0.1:6379:6379"
+  mailhog:
+    ports: !override
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+  rails:
+    ports: !override
+      - "127.0.0.1:3000:3000"
+  vite:
+    ports: !override
+      - "127.0.0.1:3036:3036"
