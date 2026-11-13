@@ -18,3 +18,13 @@ Data: 2026-11-12/13. Ambiente: Docker (Ruby 3.4.4, Node 24.22.1), `DISABLE_ENTER
 4. `db:chatwoot_prepare` esegue `annotate` e modifica file tracciati (anche in `enterprise/`): ripristinare con `git checkout`.
 5. Primo caricamento pagina ~30 s (compilazione Vite in dev).
 6. File con CRLF da checkout Windows rompono gli entrypoint shell.
+
+## Aggiornamento 2026-11-13
+| Controllo | Esito |
+|---|---|
+| ESLint (`pnpm eslint`) | 0 errori, 456 warning (i18n gia' presenti in upstream) |
+| RuboCop (intero repo, container) | 3361 file, 54 violazioni (`Rails/Output`, `Rails/Exit`) in 9 file NON applicativi: `docker/entrypoints/helpers/pg_database_url.rb`, `script/*.rb` (6), `spec/rails_helper.rb`, `spec/support/opensearch_check.rb`. Codice app/lib/config/db pulito. |
+| App senza `enterprise/` | Avvio OK su export Community: `/api` 200 (4.19.1, queue/data ok); `enterprise` assente, `Enterprise` e `Captain::Document` non definiti, `ChatwootApp.enterprise?` falsy |
+| Vitest | 513 file, 5251 test, tutti passati |
+
+Nota: la CI di prodotto esegue RuboCop solo sui file Ruby modificati dalla PR per non ereditare le violazioni upstream.
