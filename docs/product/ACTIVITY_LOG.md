@@ -15,5 +15,5 @@
 - Il branding del prodotto sarà originale ma manterrà le attribuzioni obbligatorie.
 
 ## Prossimi passi (Fase 2)
-- Leggere README/docs, analizzare architettura (Rails 3.4.4, Node 24.22.1, PostgreSQL, Redis, Sidekiq, Vue 3).
+- Leggere README/docs, analizzare architettura (Ruby 3.4.4, Node 24.22.1, PostgreSQL, Redis, Sidekiq, Vue 3).
 - Ambiente Docker di sviluppo, avvio app, test di baseline.
